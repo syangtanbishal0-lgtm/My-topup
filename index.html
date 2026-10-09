@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b1020"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020"><link rel="manifest" href="manifest.json">
+<title>My Top-Up</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070b16;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:520px;margin:auto;padding:18px 15px 90px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.logo{font-weight:900;font-size:22px}.sub{color:#8d97ad;font-size:12px}.card{background:#11182a;border:1px solid #202b43;border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 10px 30px #0004}
+h2{margin:4px 0 14px;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn,.select,input{width:100%;border:0;border-radius:13px;padding:13px;background:#1b2640;color:#fff;font-size:15px}
+.btn{font-weight:800;cursor:pointer}.primary{background:#6d5dfc}.ghost{background:#182238}.danger{background:#3a1e2a}
+label{display:block;color:#9ca7bb;font-size:12px;margin:12px 0 6px}.price{font-size:29px;font-weight:900}.npr{font-size:18px;font-weight:800;margin-top:4px}.muted{color:#8d97ad;font-size:12px}.row{display:flex;justify-content:space-between;gap:12px;margin:9px 0}.pill{padding:5px 9px;border-radius:99px;background:#1c2840;color:#aeb9ff;font-size:11px}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#0c1221ee;backdrop-filter:blur(15px);border-top:1px solid #202b43}.navin{max-width:520px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);padding:8px}.nav button{background:none;border:0;color:#a7b0c4;padding:9px;font-weight:700}.nav button.active{color:#fff}
+.hidden{display:none!important}.ok{color:#73e2a4}.warn{color:#ffd36d}.bigicon{font-size:30px}.receipt{background:#fff;color:#111;border-radius:16px;padding:20px}.receipt h2{color:#111}.receipt .muted{color:#666}
+</style></head><body><div class="wrap">
+<div class="top"><div><div class="logo">⚡ My Top-Up</div><div class="sub">Personal game & digital top-up helper</div></div><span class="pill">USD + NPR</span></div>
+
+<section id="home">
+<div class="card"><h2>New Top-Up</h2>
+<label>Friend / Family</label><input id="friend" placeholder="e.g. Ram">
+<label>Service</label><select id="service" class="select" onchange="serviceChanged()">
+<option>Mobile Legends</option><option>PUBG Mobile</option><option>Free Fire</option><option>TikTok Coins</option><option>Roblox</option></select>
+<label id="idlabel">Player ID / Username</label>
+<input id="recipient" placeholder="Enter Player ID">
+<div id="qrtools" class="grid hidden" style="margin-top:10px">
+<button class="btn ghost" onclick="openQRFile()">🖼️ Choose QR from Gallery</button>
+<button class="btn ghost" onclick="openQRCamera()">📷 Scan QR with Camera</button>
+</div>
+<input id="qrfile" type="file" accept="image/*" class="hidden" onchange="decodeQRFile(event)">
+<label>Package</label><select id="pkg" class="select" onchange="updatePrice()"></select>
+<div class="card" style="margin:14px 0;background:#0b1220">
+<div class="muted">TOP-UP COST</div><div class="price" id="usd">$0.00 USD</div><div class="npr" id="npr">रू 0 NPR</div>
+<div class="muted" id="rate">Estimated at 1 USD = NPR 153.10</div>
+</div>
+<button class="btn primary" onclick="review()">Review payment</button>
+</div>
+<div class="card" id="tiktoknote"><h2>📷 TikTok QR</h2><div class="muted">For TikTok, choose <b>Scan QR with Camera</b> to open your phone camera, or choose a QR image from your Gallery. The app reads the QR locally and puts the result into the recipient field. It does not log into another person's account.</div></div>
+<div class="card"><h2>🔒 Card safety</h2><div class="muted">This app never asks for or stores your Global IME card number, CVV, PIN, OTP or banking password. Payment happens on the official checkout.</div></div>
+</section>
+
+<section id="review" class="hidden"><div class="card"><h2>Confirm Top-Up</h2><div id="reviewBox"></div>
+<label><input type="checkbox" id="c1"> I checked the recipient ID/QR.</label>
+<label><input type="checkbox" id="c2"> I checked the USD/NPR amount.</label>
+<label><input type="checkbox" id="c3"> I understand the final card charge is determined by the official checkout.</label>
+<button class="btn primary" onclick="checkout()">Open official payment</button>
+<button class="btn ghost" onclick="show('home')">Back</button></div></section>
+
+<section id="history" class="hidden"><div class="card"><h2>Payment History</h2><div id="hist"></div><button class="btn danger" onclick="clearHistory()">Clear history</button></div></section>
+</div>
+<div class="nav"><div class="navin"><button class="active" onclick="show('home')">🏠 Home</button><button onclick="show('history')">🧾 History</button><button onclick="installHelp()">📲 Home Screen</button></div></div>
+<script>
+const RATE=153.10;
+const data={
+"Mobile Legends":[["Weekly Diamond Pass",2.99],["56 Diamonds",0.99],["112 Diamonds",1.99],["223 Diamonds",3.99],["336 Diamonds",5.99],["570 Diamonds",9.99]],
+"PUBG Mobile":[["60 UC",0.99],["325 UC",4.99],["660 UC",9.99],["1800 UC",24.99],["3850 UC",49.99],["8100 UC",99.99]],
+"Free Fire":[["100 Diamonds",0.99],["310 Diamonds",2.99],["520 Diamonds",4.99],["1060 Diamonds",9.99],["2180 Diamonds",19.99],["5600 Diamonds",49.99]],
+"TikTok Coins":[["TikTok Coins package",4.99],["Custom Coins",9.99]],
+"Roblox":[["Robux package",4.99],["Official gift option",9.99]]
+};
+let current=null;
+function serviceChanged(){
+let isTik=document.getElementById("service").value==="TikTok Coins";
+document.getElementById("idlabel").textContent=isTik?"Recipient QR / account reference":"Player ID / Username";
+document.getElementById("recipient").placeholder=isTik?"Scan QR or enter recipient reference":"Enter Player ID";
+document.getElementById("qrtools").classList.toggle("hidden",!isTik);
+fillPkgs()
+}
+function openQRFile(){document.getElementById("qrfile").removeAttribute("capture");document.getElementById("qrfile").click()}
+function openQRCamera(){let f=document.getElementById("qrfile");f.setAttribute("capture","environment");f.click()}
+async function decodeQRFile(e){
+ const file=e.target.files&&e.target.files[0]; if(!file)return;
+ if(!("BarcodeDetector" in window)){alert("QR reading is not supported by this Chrome version. Please update Chrome.");return}
+ try{
+   const detector=new BarcodeDetector({formats:["qr_code"]});
+   const bmp=await createImageBitmap(file);
+   const codes=await detector.detect(bmp);
+   if(codes.length){document.getElementById("recipient").value=codes[0].rawValue;alert("QR scanned successfully.");}
+   else alert("No QR code found in that image. Try a clearer QR screenshot/photo.");
+ }catch(err){alert("Could not read that QR image. Try another photo or screenshot.")}
+ e.target.value="";
+}
+function fillPkgs(){let s=document.getElementById("service").value,p=document.getElementById("pkg");p.innerHTML=data[s].map((x,i)=>`<option value="${i}">${x[0]} — $${x[1].toFixed(2)}</option>`).join("");updatePrice()}
+function updatePrice(){let s=document.getElementById("service").value,i=+document.getElementById("pkg").value,x=data[s][i];document.getElementById("usd").textContent=`$${x[1].toFixed(2)} USD`;document.getElementById("npr").textContent=`रू ${(x[1]*RATE).toFixed(0)} NPR`;document.getElementById("rate").textContent=`Estimate: 1 USD = NPR ${RATE.toFixed(2)} (final card charge may differ)`}
+function review(){let f=document.getElementById("friend").value.trim(),r=document.getElementById("recipient").value.trim();if(!f||!r){alert("Enter the friend name and recipient ID/reference first.");return}let s=document.getElementById("service").value,x=data[s][+document.getElementById("pkg").value];current={friend:f,recipient:r,service:s,package:x[0],usd:x[1],npr:x[1]*RATE,ts:new Date().toISOString()};document.getElementById("reviewBox").innerHTML=`<div class="row"><span>Friend</span><b>${esc(f)}</b></div><div class="row"><span>Service</span><b>${esc(s)}</b></div><div class="row"><span>Recipient</span><b>${esc(r)}</b></div><div class="row"><span>Package</span><b>${esc(x[0])}</b></div><hr><div class="row"><span>USD</span><b>$${x[1].toFixed(2)}</b></div><div class="row"><span>NPR estimate</span><b>रू ${current.npr.toFixed(0)}</b></div>`;show("review")}
+function checkout(){if(!c1.checked||!c2.checked||!c3.checked){alert("Please check all 3 confirmations.");return}save(current);let u={ "Mobile Legends":"https://www.codashop.com/en-np/mobile-legends","PUBG Mobile":"https://www.codashop.com/en-np/pubg-mobile-uc-redeem-code","Free Fire":"https://www.codashop.com/en-np/","TikTok Coins":"https://www.tiktok.com/coin","Roblox":"https://www.roblox.com/gift-robux"}[current.service];window.open(u,"_blank")}
+function save(x){let h=JSON.parse(localStorage.getItem("topupHistory")||"[]");h.unshift(x);localStorage.setItem("topupHistory",JSON.stringify(h.slice(0,100)));renderHistory()}
+function renderHistory(){let h=JSON.parse(localStorage.getItem("topupHistory")||"[]"),el=document.getElementById("hist");el.innerHTML=h.length?h.map(x=>`<div class="card"><div class="row"><b>${esc(x.friend)}</b><span>${new Date(x.ts).toLocaleDateString()}</span></div><div>${esc(x.service)} · ${esc(x.package)}</div><div class="row"><b>$${x.usd.toFixed(2)}</b><b>रू ${x.npr.toFixed(0)}</b></div><button class="btn ghost" onclick='receipt(${JSON.stringify(x)})'>Receipt</button></div>`).join(""):"<div class='muted'>No top-ups yet.</div>"}
+function receipt(x){let w=window.open("","_blank");w.document.write(`<html><body style="font-family:Arial;padding:24px"><div style="max-width:420px;margin:auto;border:1px solid #ddd;border-radius:18px;padding:22px"><h2>⚡ My Top-Up Receipt</h2><p><b>Friend:</b> ${esc(x.friend)}</p><p><b>Service:</b> ${esc(x.service)}</p><p><b>Package:</b> ${esc(x.package)}</p><p><b>Recipient:</b> ${esc(x.recipient)}</p><hr><h2>$${x.usd.toFixed(2)} USD</h2><h3>≈ रू ${x.npr.toFixed(0)} NPR</h3><p>Rate used: 1 USD = NPR ${RATE.toFixed(2)}</p><p style="color:#666">Estimate only. Final card charge is shown by the official checkout.</p><button onclick="print()">Print / Save PDF</button></div></body></html>`);w.document.close()}
+function clearHistory(){if(confirm("Clear all local history?")){localStorage.removeItem("topupHistory");renderHistory()}}
+function show(id){["home","review","history"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden");if(id==="history")renderHistory();scrollTo(0,0)}
+let deferredPrompt=null; window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;}); async function installHelp(){if(deferredPrompt){deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null;}else{alert("Once this app is hosted online, open it in Chrome → ⋮ → Install app / Install and create shortcut → Install.");}}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+serviceChanged();renderHistory();
+if("serviceWorker" in navigator && location.protocol!=="file:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+</script></body></html>
